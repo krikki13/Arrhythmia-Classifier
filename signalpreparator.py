@@ -1,4 +1,6 @@
 import random
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -16,7 +18,6 @@ class SignalPreparator:
     def __init__(self, surrounding_seconds, freq):
         self.validation_ratio = 0.25
         self.data_path = 'data/'
-        random.seed(42)
         self.surrounding_seconds = surrounding_seconds
         self.freq = freq
 
@@ -50,9 +51,47 @@ class SignalPreparator:
 
         return p_signal, atr_sym, atr_sample
 
-    def plot_signal(self, signal):
-        plt.plot(signal)
-        plt.show()
+    def get_beat_type_distribution(self, list_of_records, print_each_individual=True):
+        """
+        Reads annotations of given records and returns numbers representing counts of normal and abnormal
+        beats, as well as defaultdict for each individual abnormal beat.
+        """
+        records = [line.rstrip('\n') for line in open(self.data_path + 'RECORDS.txt')]
+
+        if list_of_records is not None and len(list_of_records) > 0:
+            records = list(set(records) & set(map(lambda rec: str(rec), list_of_records)))
+
+        if len(records) == 0:
+            raise Exception("Intersection of requested records and actual ones is empty")
+
+        overall = defaultdict(int)
+        overall_normal = 0
+        overall_abnormal = 0
+        for record in records:
+            annotation = np.array(wfdb.rdann(self.data_path+record, 'atr').symbol)
+            values, counts = np.unique(annotation, return_counts=True)
+
+            if print_each_individual:
+                print("RECORD %s" % record)
+            sum_abnormal = 0
+            normal = 0
+            for value, count in zip(values, counts):
+                if value == 'N':
+                    normal = count
+                    overall_normal += normal
+                elif value in self.abnormal_beat_annotations:
+                    if print_each_individual:
+                        print("%s: %5d" % (value, count))
+                    sum_abnormal += count
+                    overall[value] += count
+                    overall_abnormal += count
+            if print_each_individual:
+                print("%s: %d" % ("Abnormal", sum_abnormal))
+                print("%s: %d\n" % ("Normal", normal))
+
+        return overall_normal, overall_abnormal, overall
+
+
 
     def filter_signal(self, signals):
         """Applies filters on given signals. There may be any number of signals provided as rows of the 2D array.
@@ -96,18 +135,20 @@ class SignalPreparator:
         """Creates pandas dataframe for read records.
 
         Parameters
-        ---------
+        ----------
         list_of_records : list or None
             List of numbers of signal to be loaded. They can start with paths.
             If empty or none, all found record will be loaded.
 
         Returns
         -------
-        X_all : np.ndarray
+        X_all : array-like
             An array of short clips of signal that are centered on beat and are surrounded by self.surrounding_seconds seconds
             long subsignal. Each clip as represented as an array of values.
-        Y_all : ndarray
+
+        Y_all : array-like
             An array with values 0 or 1, which represent the class (normal or abnormal) of a sample clip.
+
         sym_all : list
             A list of strings that represent classes of sample clips.
        """
@@ -170,19 +211,6 @@ class SignalPreparator:
         assert np.sum(max_rows) == X_all.shape[0], 'num of rows messed up'
         assert Y_all.shape[0] == X_all.shape[0], 'num of rows messed up'
         assert Y_all.shape[0] == len(sym_all), 'num of rows messed up'
-
-        # Print distribution
-        values, counts = np.unique(np.array(sym_all), return_counts=True)
-        sum_abnormal = 0
-        normal = 0
-        for value, count in zip(values, counts):
-            if value == 'N':
-                normal = count
-            else:
-                print("%s: %5d" % (value, count))
-                sum_abnormal += count
-        print("%s: %d" % ("Abnormal", sum_abnormal))
-        print("%s: %d" % ("Normal", normal))
 
         return X_all, Y_all, sym_all
 
