@@ -9,11 +9,9 @@ from scipy.signal import lfilter
 
 
 class SignalPreparator:
-    abnormal_beat_annotations = ['L', 'R', 'B', 'A', 'a', 'J', 'S', 'V', 'r', 'F', 'e', 'j', 'n', 'E', '/', 'f',
+    # removed / from abnormal because it is paced beat by pace maker
+    abnormal_beat_annotations = ['L', 'R', 'B', 'A', 'a', 'J', 'S', 'V', 'r', 'F', 'e', 'j', 'n', 'E', 'f',
                                  'Q', '?']
-    non_beat_annotations = ['[', '!', ']', 'x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', '+', 's', 'T',
-                            '*', 'D',
-                            '=', '"', '@']
 
     def __init__(self, surrounding_seconds, freq):
         self.validation_ratio = 0.25

@@ -30,8 +30,12 @@ class CnnTrainer:
         print("Precision: %.6f" % precision)
 
     def train(self):
-        sp = SignalPreparator(3, 360)
+        sp = SignalPreparator(2, 360)
         records = [line.rstrip('\n') for line in open(self.data_path + 'RECORDS.txt')]
+        records.remove('101')
+        records.remove('103')
+        records.remove('117')
+        records.remove('230')
 
         rec_train = []
         rec_valid = []
@@ -72,18 +76,22 @@ class CnnTrainer:
 
         x_train_cnn = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
         x_valid_cnn = np.reshape(x_valid, (x_valid.shape[0], x_valid.shape[1], 1))
+        print(x_train_cnn.shape)
 
+        # for 3 seconds -> 2160, 1078, 537
+        # for 2 seconds -> 1440, 718, 357
+        # for 1 second -> 720, 358, 177
 
         # LEARNING
         model = Sequential()
-        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(2160, 1)))
+        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(1440, 1)))
         model.add(Dropout(rate=0.5))
         model.add(AveragePooling1D(pool_size=2, strides=None, padding='valid', data_format='channels_last'))
-        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(1078, 128)))
+        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(718, 128)))
         model.add(Dropout(rate=0.5))
         model.add(AveragePooling1D(pool_size=2, strides=None, padding='valid', data_format='channels_last'))
-        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(537, 128)))
-        model.add(Dropout(rate=0.35))
+        model.add(Conv1D(filters=128, kernel_size=5, activation='relu', input_shape=(357, 128)))
+        model.add(Dropout(rate=0.5))
         model.add(Flatten())
         model.add(Dense(1, activation='sigmoid'))
 
